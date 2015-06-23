@@ -198,7 +198,7 @@ class PTSampler(Sampler):
                  threads=1, pool=None, a=2.0,
                  loglargs=[], logpargs=[],
                  loglkwargs={}, logpkwargs={},
-                 adaptation_lag=10000, adaptation_time=100):
+                 adaptation_lag=100, adaptation_time=10):
         self.logl = logl
         self.logp = logp
         self.a = a

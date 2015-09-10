@@ -317,6 +317,12 @@ class PTSampler(Sampler):
             logps = np.array([r[1] for r in results]).reshape((self.ntemps,
                                                                self.nwalkers))
 
+            # Correct for the fact that somebody may have set logl ==
+            # -inf to remove points
+            sel = logls == np.NINF
+            logps[sel] = np.NINF
+            logls[sel] = 0.0
+
             lnlike0 = logls
             lnprob0 = logls * betas + logps
 
@@ -354,6 +360,11 @@ class PTSampler(Sampler):
                     (self.ntemps, self.nwalkers//2))
                 qslogps = np.array([r[1] for r in results]).reshape(
                     (self.ntemps, self.nwalkers//2))
+
+                sel = qslogls == np.NINF
+                qslogps[sel] = np.NINF
+                qslogls[sel] = 0.0
+
                 qslnprob = qslogls * betas + qslogps
 
                 logpaccept = self.dim*np.log(zs) + qslnprob \

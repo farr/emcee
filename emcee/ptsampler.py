@@ -221,6 +221,11 @@ class PTSampler(Sampler):
         # Make sure ladder is ascending in temperature.
         self._betas[::-1].sort()
 
+        assert self.nwalkers % 2 == 0, \
+            "The number of walkers must be even."
+        assert self.nwalkers >= 2*self.dim, \
+            "The number of walkers must be greater than or equal to 2*dimension."
+
         if self.nwalkers % 2 != 0:
             raise ValueError('The number of walkers must be even.')
         if self.nwalkers < 2 * self.dim:
@@ -271,6 +276,10 @@ class PTSampler(Sampler):
             The initial likelihood values for the ensembles.  Shape
             ``(ntemps, nwalkers)``.
 
+        :param rstate0: (optional)
+            The state of the random number generator.
+            See the :attr:`Sampler.random_state` property for details.
+
         :param iterations: (optional)
             The number of iterations to preform.
 
@@ -296,7 +305,6 @@ class PTSampler(Sampler):
         * ``lnlike`` the current likelihood values for the walkers.
 
         """
-
         # Set initial walker positions.
         if p0 is not None:
             p = np.array(p0).copy()
@@ -305,6 +313,9 @@ class PTSampler(Sampler):
 
         mapf = map if self.pool is None else self.pool.map
         betas = self._betas.reshape((-1, 1))
+
+        # See comments in EnsembleSampler.sample(). Fails silently.
+        self.random_state = rstate0
 
         # If we have no lnprob or logls compute them
         if lnprob0 is None or lnlike0 is None:
@@ -687,19 +698,17 @@ class PTSampler(Sampler):
         """
         return self.get_autocorr_time()
 
-    def get_autocorr_time(self, window=50):
+    def get_autocorr_time(self, **kwargs):
         """
         Returns a matrix of autocorrelation lengths for each
         parameter in each temperature of shape ``(Ntemps, Ndim)``.
 
-        :param window: (optional)
-            The size of the windowing function. This is equivalent to the
-            maximum number of lags to use. (default: 50)
+        Any arguments will be passed to :func:`autocorr.integrate_time`.
 
         """
         acors = np.zeros((self.ntemps, self.dim))
 
         for i in range(self.ntemps):
             x = np.mean(self._chain[i, :, :, :], axis=0)
-            acors[i, :] = autocorr.integrated_time(x, window=window)
+            acors[i, :] = autocorr.integrated_time(x, **kwargs)
         return acors
